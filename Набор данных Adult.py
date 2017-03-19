@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sun Mar 19 17:52:03 2017
+<<<<<<< HEAD
 
 
+=======
+ 
+#https://github.com/Yorko/mlcourse_open/blob/master/jupyter_notebooks/topic3_decision_trees_knn/hw3_decision_trees.ipynb
+>>>>>>> origin/master
 """
 
 import pandas as pd
@@ -71,6 +76,7 @@ data_test['Education_Num'] = data_test['Education_Num'].astype(int)
 data_test['Capital_Gain'] = data_test['Capital_Gain'].astype(int)
 data_test['Capital_Loss'] = data_test['Capital_Loss'].astype(int)
 data_test['Hours_per_week'] = data_test['Hours_per_week'].astype(int)
+<<<<<<< HEAD
 
 #Заполним пропуски в количественных полях медианными значениями, а в категориальных – наиболее часто встречающимся значением
 def FillEmptyValues(dataSet):
@@ -127,3 +133,5 @@ print(round(accuracy_score(y_test, сlf.predict(X_test)),3))
 #Какова доля правильных ответов дерева решений на тестовой выборке при максимальной глубине дерева = 9 и random_state = 17
 сlf=DecisionTreeClassifier(criterion='entropy', max_depth=9,random_state = 17)
 сlf.fit(X_train,y_train)
+=======
+>>>>>>> origin/master
