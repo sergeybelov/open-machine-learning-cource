@@ -5,7 +5,7 @@ Created on Sun Mar 19 17:52:03 2017
 
 
 =======
- 
+
 #https://github.com/Yorko/mlcourse_open/blob/master/jupyter_notebooks/topic3_decision_trees_knn/hw3_decision_trees.ipynb
 >>>>>>> origin/master
 """
@@ -15,6 +15,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import GridSearchCV
 #==============================================================================
 # Набор данных UCI Adult (качать не надо, все есть в репозитории): классификация людей с
 # помощью демографических данных для прогнозирования, зарабатывает ли человек более $ 50 000 в год.
@@ -76,7 +77,7 @@ data_test['Education_Num'] = data_test['Education_Num'].astype(int)
 data_test['Capital_Gain'] = data_test['Capital_Gain'].astype(int)
 data_test['Capital_Loss'] = data_test['Capital_Loss'].astype(int)
 data_test['Hours_per_week'] = data_test['Hours_per_week'].astype(int)
-<<<<<<< HEAD
+
 
 #Заполним пропуски в количественных полях медианными значениями, а в категориальных – наиболее часто встречающимся значением
 def FillEmptyValues(dataSet):
@@ -128,10 +129,18 @@ y_test = data_test['Target']
 сlf.fit(X_train,y_train)
 
 #Сделайте с помощью полученной модели прогноз для тестовой выборки.
-print(round(accuracy_score(y_test, сlf.predict(X_test)),3))
+print("max_depth=3: %f" % round(accuracy_score(y_test, сlf.predict(X_test)),3))
+
+#Обучите на имеющейся выборке дерево решений (DecisionTreeClassifier, опять random_state = 17 ).
+#Максимальную глубину настройте на кросс-валидации с помощью GridSearchCV. Проведите 5-кратную кросс-валидацию
+tree_params = {'max_depth': range(9,10)}#,'max_features': range(4,19)
+tree_grid = GridSearchCV(сlf, tree_params,cv=5, n_jobs=-1,verbose=True)
+tree_grid.fit(X_train, y_train)
+print("best_params")
+print(tree_grid.best_params_)
 
 #Какова доля правильных ответов дерева решений на тестовой выборке при максимальной глубине дерева = 9 и random_state = 17
-сlf=DecisionTreeClassifier(criterion='entropy', max_depth=9,random_state = 17)
-сlf.fit(X_train,y_train)
-=======
->>>>>>> origin/master
+#сlf=DecisionTreeClassifier(criterion='entropy', max_depth=9,random_state = 17)
+#сlf.fit(X_train,y_train)
+
+#print("max_depth=9: %f" % round(accuracy_score(y_test, сlf.predict(X_test)),3))
