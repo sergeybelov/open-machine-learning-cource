@@ -331,7 +331,7 @@ tmp = full_new_feat[['start_month']].as_matrix()
 X_train = csr_matrix(hstack([full_sites_sparse[:idx_split,:], tmp[:idx_split,:]]))
 
 # считаем метрику на валидационной выборке
-print(get_auc_lr_valid(X_train, y_train))
+print(u'start_month=',get_auc_lr_valid(X_train, y_train))
 
 #==============================================================================
 # Можно дать следующие практические советы:
@@ -350,7 +350,7 @@ tmp = StandardScaler().fit_transform(full_new_feat[['start_month']])
 X_train = csr_matrix(hstack([full_sites_sparse[:idx_split,:], tmp[:idx_split,:]]))
 
 # считаем метрику на валидационной выборке
-print(get_auc_lr_valid(X_train, y_train))
+print(u'start_month (normal)=',get_auc_lr_valid(X_train, y_train))
 
 
 #==============================================================================
@@ -364,4 +364,11 @@ print(get_auc_lr_valid(X_train, y_train))
 # Подсказки: воспользуйтесь функцией nunique() из Pandas.
 # Не забудьте включить в выборку start_month. Будете ли вы мастшабировать новый признак? Почему?
 #==============================================================================
-#full_new_feat['n_unique_sites'] =full_new_feat
+full_new_feat['n_unique_sites']=full_df[sites].apply(lambda x: x.nunique(),axis=1)
+
+tmp = full_new_feat[['n_unique_sites']].as_matrix()
+X_train = csr_matrix(hstack([full_sites_sparse[:idx_split,:], tmp[:idx_split,:]]))
+
+# считаем метрику на валидационной выборке
+print(u'n_unique_sites=',get_auc_lr_valid(X_train, y_train))
+
