@@ -182,7 +182,7 @@ sns.boxplot(x="seconds", data=time_df)
 #sns.distplot(time_df.seconds,kde=False)
 
 print('доля сессий Элис от 40 секунд и дольше составляет менее четверти. ')
-session40Sec=len(time_df[time_df.seconds>=40])
+session40Sec=len(time_df[(time_df.seconds>=40) & (time_df.target==1)])
 print ('Да') if session40Sec<onePercent*25 else print ('Нет')
 
 
