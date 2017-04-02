@@ -13,6 +13,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
 
 ## Сделаем функцию, которая будет заменять NaN значения на медиану в каждом столбце таблицы
 def delete_nan(table):
@@ -147,6 +148,14 @@ print('Вопрос 5.3. Какое оптимальное значение па
 #print("best_score")
 #print(clf_grid.best_score_)
 
+def calc_score(md, text):
+    scores = cross_val_score(md, X,y, scoring='roc_auc', cv=skf)#Оценка алгоритма
+    val=round(scores.mean()*100,2)#берем среднее значение оценки
+    print("Оценка качества (",text,") ",val)
+
+lr = LogisticRegression(random_state=5, class_weight= 'balanced',**clf_grid.best_params_)
+calc_score(lr,'LogisticRegression')
+
 #==============================================================================
 # Задание 4. Можно ли считать лучшую модель устойчивой? (модель считаем устойчивой,
 # если стандартное отклонение на валидации меньше 0.5%)
@@ -213,7 +222,5 @@ parameters = {'max_features': [1, 2, 4], 'min_samples_leaf': [3, 5, 7, 9], 'max_
 clf_grid = GridSearchCV(rf, parameters,cv=skf, n_jobs=1,verbose=1,scoring='roc_auc')
 clf_grid.fit(X,y)
 
-print(u"best_params")
-print(clf_grid.best_params_)
-print(u"best_score")
-print(clf_grid.best_score_)
+rf = RandomForestClassifier(n_estimators=100, n_jobs=-1, random_state=42, oob_score=True, class_weight='balanced',**clf_grid.best_params_)
+calc_score(rf,'RandomForestClassifier')
