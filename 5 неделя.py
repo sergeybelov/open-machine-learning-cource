@@ -14,6 +14,8 @@ from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
+from sklearn.ensemble import BaggingClassifier
+from sklearn.model_selection import RandomizedSearchCV
 
 ## Сделаем функцию, которая будет заменять NaN значения на медиану в каждом столбце таблицы
 def delete_nan(table):
@@ -81,7 +83,7 @@ print(data['SeriousDlqin2yrs'].value_counts()/data.shape[0])
 print('-- В ПРИМЕРЕ КЛАССЫ РАЗБАЛАНСИРОВАНЫ --')
 
 ## Выберем названия всех признаков из таблицы, кроме прогнозируемого
-independent_columns_names = data.columns.difference(['SeriousDlqin2yrs']).tolist()
+independent_columns_names = independent_columns_names = [x for x in data if x != 'SeriousDlqin2yrs']#data.columns.difference(['SeriousDlqin2yrs']).tolist()
 
 ## Применяем функцию, заменяющую все NaN значения на медианное значение соответствующего столбца
 table=delete_nan(data)
@@ -89,6 +91,7 @@ table=delete_nan(data)
 ## Разделяем таргет и признаки
 X =table[independent_columns_names]
 y =table['SeriousDlqin2yrs']
+
 
 #==============================================================================
 # Задание 2. Сделайте интервальную оценку среднего возраста (age) для клиентов, которые просрочили выплату кредита, с 90%
@@ -112,7 +115,7 @@ np.random.seed(0)
 badDebedsAge=table[table['SeriousDlqin2yrs'] == 1]['age'].values
 badDebeds_mean_scores = [np.mean(sample)
                        for sample in get_bootstrap_samples(badDebedsAge, 1000)]
-print("Вопрос 5.2",  stat_intervals(badDebeds_mean_scores, 0.10))
+print("Вопрос 5.2",  stat_intervals(badDebeds_mean_scores, 0.10))#0.1=10%=100%-90%
 
 #==============================================================================
 # Вопрос 5.3. Какое оптимальное значение параметра С?
@@ -145,16 +148,19 @@ skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=5)
 clf_grid = GridSearchCV(lr, parameters,cv=skf, n_jobs=1,verbose=1,scoring='roc_auc')
 clf_grid.fit(X,y)
 print('Вопрос 5.3. Какое оптимальное значение параметра С? ',clf_grid.best_params_['C'])
+bslr=clf_grid.best_score_
+print("Оценка качества GridSearchCV без нормализации = ",round(bslr*100,2))
 #print("best_score")
 #print(clf_grid.best_score_)
 
-def calc_score(md, text):
+"""def calc_score(md, text):
     scores = cross_val_score(md, X,y, scoring='roc_auc', cv=skf)#Оценка алгоритма
     val=round(scores.mean()*100,2)#берем среднее значение оценки
     print("Оценка качества (",text,") ",val)
 
 lr = LogisticRegression(random_state=5, class_weight= 'balanced',**clf_grid.best_params_)
 calc_score(lr,'LogisticRegression')
+"""
 
 #==============================================================================
 # Задание 4. Можно ли считать лучшую модель устойчивой? (модель считаем устойчивой,
@@ -174,6 +180,7 @@ X_norm=StandardScaler().fit_transform(X)
 
 lr=LogisticRegression(random_state=5, class_weight= 'balanced', **clf_grid.best_params_)
 lr.fit(X_norm, y)#Обучаем
+
 
 #получаем список показателей которые сильнее всего влияют на предсказания
 featureImportances=pd.DataFrame(data=lr.coef_,columns=independent_columns_names).T
@@ -207,6 +214,15 @@ _or=round(math.exp(20*featureImportances.loc['age'][0]),2)#умножаем ко
 
 print('Вопрос 5.7. Во сколько раз увеличатся шансы, что клиент не выплатит кредит, если увеличить возраст на 20 лет при всех остальных неизменных значениях признаков. ',_or)
 
+X_age_plus_20 = X.copy()
+X_age_plus_20['age'] +=  20
+
+
+y_pred = lr.predict_proba(X)
+y_pred_age_plus_20 = lr.predict_proba(X_age_plus_20)
+var=y_pred_age_plus_20[:,0]-y_pred[:,0]
+
+#del lr
 print('----------------------')
 
 #==============================================================================
@@ -221,6 +237,52 @@ parameters = {'max_features': [1, 2, 4], 'min_samples_leaf': [3, 5, 7, 9], 'max_
 ## Делаем опять же стрэтифайд k-fold валидацию. Инициализация которой должна у вас продолжать храниться в skf
 clf_grid = GridSearchCV(rf, parameters,cv=skf, n_jobs=1,verbose=1,scoring='roc_auc')
 clf_grid.fit(X,y)
+print("Оценка качества RandomForestClassifier = ",round(clf_grid.best_score_*100,2))
+print('Задание 8. На сколько точность лучшей модели случайного леса выше точности логистической регрессии на валидации? ',round((clf_grid.best_score_-bslr)*100,0))
+#rf = RandomForestClassifier(n_estimators=100, n_jobs=-1, random_state=42, oob_score=True, class_weight='balanced',**clf_grid.best_params_)
+#calc_score(rf,'RandomForestClassifier')
 
+
+#==============================================================================
+# Задание 9. Определите какой признак имеет самое слабое влияние.
+#==============================================================================
 rf = RandomForestClassifier(n_estimators=100, n_jobs=-1, random_state=42, oob_score=True, class_weight='balanced',**clf_grid.best_params_)
-calc_score(rf,'RandomForestClassifier')
+rf.fit(X,y)
+
+featureImportances=pd.DataFrame(data=rf.feature_importances_,index=independent_columns_names)
+featureImportances=featureImportances.apply(lambda x: abs(x))
+featureImportances.sort_values([0],ascending=True,inplace=True)
+print('Задание 9. Определите какой признак имеет самое слабое влияние. ',featureImportances.ix[0].name)
+
+#==============================================================================
+# Вопрос 5.10. Какое наиболее существенное примущество логистической регрессии перед случайным лесом для нашей бизнес-задачи
+#==============================================================================
+print('10. Какое наиболее существенное примущество логистической регрессии перед случайным лесом для нашей бизнес-задачи? ','интерпретируемость коэффициентов при признаках')
+
+#==============================================================================
+# Вопрос 5.11. Какая лучшая точность получилась для бэггинга с базовым классификатором логистической регрессией?
+#==============================================================================
+parameters = {'max_features': [2, 3, 4], 'max_samples': [0.5, 0.7, 0.9], "base_estimator__C": [0.0001, 0.001, 0.01, 1, 10, 100]}
+
+bc=BaggingClassifier(LogisticRegression(class_weight= 'balanced'),random_state=42,n_estimators=100, n_jobs=1)
+
+clf_grid=RandomizedSearchCV(bc, parameters,cv=skf, n_jobs=1, random_state=1,n_iter=20,scoring='roc_auc')
+clf_grid.fit(X,y)
+print("11. Какая лучшая точность получилась для бэггинга с базовым классификатором логистической регрессией? = ",round(clf_grid.best_score_*100,2))
+
+#==============================================================================
+# Задача 12. Дайте интерпретацию лучших параметров для бэггинга. Почему именно такие значения оказались лучшими?
+# для бэггинга важно использовать как можно меньше признаков <-
+# бэггинг лучше работает на небольших выборках нет
+# меньше корреляция между одиночными моделями
+# чем больше признаков, тем меньше теряется информации
+#==============================================================================
+
+print(u"best_params BaggingClassifier")
+print(clf_grid.best_params_)
+
+#max_samples - количество образцов. если дробное (0..1] то берется часть строк подвыборки
+#max_features - количество характеристик. если дробное (0..1] то берется часть колонок
+
+print('12. Дайте интерпретацию лучших параметров для бэггинга. Почему именно такие значения оказались лучшими?','для бэггинга важно использовать как можно меньше признаков')
+#Бэггинг эффективен на малых выборках
