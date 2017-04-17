@@ -117,9 +117,7 @@ for i in range(15):
 
 #Какое минимальное число компонент PCA необходимо, чтобы объяснить 90% дисперсии
 #масштабированных (при помощи StandardScaler) данных?
-newVal=[]
-for i in range(1560):
-    newVal.append(lfw_people.images[i].ravel())
+newVal=lfw_people.images.reshape(lfw_people.images.shape[0],lfw_people.images.shape[1]*lfw_people.images.shape[2])
 
 #newVal=lfw_people.images.data
 
@@ -148,7 +146,9 @@ print('Какое минимальное число компонент PCA не�
 #и нарисовать.
 #Конкретней: для какой главной компоненты линейная комбинация исходных признаков
 #(интенсивностей пикселов), если ее представить как изображение, выглядит, как фотография, ярко освещенная слева.
+
 n=5
+
 newVal30pic=pca.components_[:n].reshape(n,50,37)
 
 for i in range(n):
@@ -158,6 +158,7 @@ for i in range(n):
     ax = fig.add_subplot(n, 5, i + 1, xticks=[], yticks=[])
     ax.imshow(newVal30pic[i], cmap='gray')
     ax.title.set_text((i+1))
+
 
 print('Какая из первых 30 главных компонент сильнее всего "отвечает" за освещенность лица слева? Ответ=2')
 
@@ -189,16 +190,11 @@ print('Какая из первых 30 главных компонент сил�
 #    print(name,'=',m1,',',m2)
 #    return m1,m2
 
-pca = decomposition.PCA(n_components=2,svd_solver='randomized',random_state=1).fit(sc_X)
+pca = pd.DataFrame(data=decomposition.PCA(n_components=2,svd_solver='randomized',random_state=1).fit_transform(sc_X))
+pca[3]=lfw_people.target
 
-#считаем среднее
-means=[]
-for ind in range(12):
-    indices=[i for i, x in enumerate(lfw_people.target) if x == ind]
-    m1=pca.components_[0,indices].mean()
-    m2=pca.components_[1,indices].mean()
-    means.append([m1,m2])    
-means=pd.DataFrame(data=means, index=lfw_people.target_names,dtype=float)
+means=pca.groupby([3])[0,1].mean()
+means.index=lfw_people.target_names
 
 
 #считаем евклидово расстояние
@@ -206,7 +202,7 @@ euc=pd.DataFrame(index=lfw_people.target_names,columns=np.arange(12))
 for i in range(12):
     euc.loc[lfw_people.target_names[i]]=euclidean_distances(means.iloc[i].values.reshape(1, -1), means.values)
 euc=euc.astype(float)
-euc*=100
+
 
 fig, ax = plt.subplots(figsize=(10,10))# Sample figsize in inches
 sns.heatmap(euc, annot=True,  linewidths=.5, ax=ax)
@@ -220,13 +216,11 @@ print_mean('George W Bush')
 print_mean('Jacques Chirac')
 print_mean('Serena Williams')
 
-#Какому человеку из набора данных lfw_people соответствуют два выброса в правом верхнем углу проекции 
+#Какому человеку из набора данных lfw_people соответствуют два выброса в правом верхнем углу проекции
 #t-SNE с параметрами n_components=2 и random_state=1
 print('-----')
 
-newVal=[]
-for i in range(1560):
-    newVal.append(lfw_people.images[i].ravel())
+newVal=lfw_people.images.reshape(lfw_people.images.shape[0],lfw_people.images.shape[1]*lfw_people.images.shape[2])
 sc_X = StandardScaler().fit_transform(newVal)
 
 tsne = TSNE(n_components=2, random_state=1)
@@ -236,14 +230,14 @@ plt.figure(figsize=(12,10))
 plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=lfw_people.target,
             cmap=plt.cm.get_cmap('nipy_spectral', 12), alpha=1, s=60)
 plt.colorbar()
-    
+
 print('Какому человеку из набора данных lfw_people соответствуют два выброса в правом верхнем углу проекции t-SNE с параметрами n_components=2 и random_state=1? Serena Williams')
 #plt.colorbar(sc)
 
-#Каким будет оптимальное число кластеров для датасета с ценами на жильё, если оценивать его с помощью метода локтя? 
-#Используйте в kMeans random_state=1, данные не масштабируйте. 
+#Каким будет оптимальное число кластеров для датасета с ценами на жильё, если оценивать его с помощью метода локтя?
+#Используйте в kMeans random_state=1, данные не масштабируйте.
 #Найдем с помощью метода локтя (см. 7 статью курса) оптимальное число кластеров, которое стоит задать алгоритму kMeans в качестве гиперпараметра.
-#Каким будет оптимальное число кластеров для датасета с ценами на жильё, 
+#Каким будет оптимальное число кластеров для датасета с ценами на жильё,
 #если оценивать его с помощью метода локтя? Используйте в kMeans random_state=1, данные не масштабируйте.
 boston = load_boston()
 X = boston.data
@@ -266,7 +260,7 @@ print('Каким будет оптимальное число кластеро�
 
 print('9. Выберите все верные утверждения')
 
-def testClusters(x,y,n):
+def testClusters(X,y,n):
     algorithms = []
     algorithms.append(KMeans(n_clusters=n, random_state=1))
     algorithms.append(AffinityPropagation())
@@ -284,11 +278,11 @@ def testClusters(x,y,n):
                 'Completeness': metrics.completeness_score(y, algo.labels_),
                 'V-measure': metrics.v_measure_score(y, algo.labels_),
                 'Silhouette': metrics.silhouette_score(X, algo.labels_)}))
-    
+
     results = pd.DataFrame(data=data, columns=['ARI', 'AMI', 'Homogenity',
-                                               'Completeness', 'V-measure', 
+                                               'Completeness', 'V-measure',
                                                'Silhouette'],
-                           index=['K-means', 'Affinity', 
+                           index=['K-means', 'Affinity',
                                   'Spectral', 'Agglomerative'])
     print(results)
 
@@ -299,18 +293,26 @@ testClusters(sc_X, lfw_people.target,12)
 target=np.zeros(lfw_people.target.shape[0])
 indices=[i for i, x in enumerate(lfw_people.target) if x == 10]
 target[indices]=1
- 
+
 print('Serena Williams')
 testClusters(sc_X, target,2)
 
 print('Affinity Propagation сработала лучше спектральной кластеризации по всем метрикам качества')
 print('Если выделять только 2 кластера, а результаты кластеризации сравнивать с бинарным вектором, Серена Уильямс это или нет, то в целом алгоритмы справляются лучше, некоторые метрики превышают значение в 66%')
 
+#Возьмите полученные раннее координаты 12 "средних" изображений людей.
+#Постройте для них дендрограмму. Используйте scipy.cluster.hierarchy
+#и scipy.spatial.distance.pdist, параметры возьмите такие же, как в соответствующем примере в статье.
 
 #meandist=wholeMean#wholeMean.values
-meandist=means.mean(axis=1)
-distance_mat = pdist(meandist) # pdist посчитает нам верхний треугольник матрицы попарных расстояний
+#meandist=pd.DataFrame(means.mean(axis=1))
+#meandist[1]=list(range(12))
+
+#meandist=means.mean(axis=1)
+distance_mat = pdist(means.values) # pdist посчитает нам верхний треугольник матрицы попарных расстояний
 
 Z = hierarchy.linkage(distance_mat, 'single') # linkage — реализация агломеративного алгоритма
-plt.figure(figsize=(7, 15))
+plt.figure(figsize=(7, 7))
 dn = hierarchy.dendrogram(Z, color_threshold=0.1)
+
+print('Какому человеку соответствует точка, объединившаяся с другими при построении дендрограммы предпоследней?',lfw_people.target_names[7])
