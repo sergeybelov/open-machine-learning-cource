@@ -26,6 +26,12 @@ from scipy.linalg import svd
 from sklearn import decomposition
 from sklearn.metrics.pairwise import euclidean_distances
 import seaborn as sns
+import matplotlib.cm as cm
+from sklearn.datasets import load_boston
+from sklearn.cluster import AffinityPropagation, SpectralClustering
+from scipy.cluster import hierarchy
+from scipy.spatial.distance import pdist
+
 
 #Дана игрушечная выборка.
 X = np.array([[2., 13.], [1., 3.], [6., 19.],
@@ -167,28 +173,33 @@ print('Какая из первых 30 главных компонент сил�
 #Жак Ширак Jacques Chirac
 #Серена Уильямс Serena Williams
 
-def getComp(_index):
-    print('Имя: ',lfw_people.target_names[_index],' index=',_index)
-    indices=[i for i, x in enumerate(lfw_people.target) if x == _index]
+#def getComp(_index):
+#    print('Имя: ',lfw_people.target_names[_index],' index=',_index)
+#    indices=[i for i, x in enumerate(lfw_people.target) if x == _index]
+#
+#    xx=lfw_people.images[indices]
+#    print('размеры: {}x{}x{}'.format(xx.shape[0],xx.shape[1],xx.shape[2]))
+#
+#    newVal=xx.reshape(xx.shape[0],xx.shape[1]*xx.shape[2])
+#    sc_X = StandardScaler().fit_transform(newVal)
+#    pca = decomposition.PCA(n_components=2,svd_solver='randomized',random_state=1).fit(sc_X)
+#
+#    m1=pca.components_[0].mean()
+#    m2=pca.components_[1].mean()
+#    print(name,'=',m1,',',m2)
+#    return m1,m2
 
-    xx=lfw_people.images[indices]
-    print('размеры: {}x{}x{}'.format(xx.shape[0],xx.shape[1],xx.shape[2]))
-
-    newVal=xx.reshape(xx.shape[0],xx.shape[1]*xx.shape[2])
-    sc_X = StandardScaler().fit_transform(newVal)
-    pca = decomposition.PCA(n_components=2,svd_solver='randomized',random_state=1).fit(sc_X)
-
-    m1=pca.components_[0].mean()
-    m2=pca.components_[1].mean()
-    print(name,'=',m1,',',m2)
-    return m1,m2
-
+pca = decomposition.PCA(n_components=2,svd_solver='randomized',random_state=1).fit(sc_X)
 
 #считаем среднее
 means=[]
-for i in range(12):
-    means.append(getComp(i))
+for ind in range(12):
+    indices=[i for i, x in enumerate(lfw_people.target) if x == ind]
+    m1=pca.components_[0,indices].mean()
+    m2=pca.components_[1,indices].mean()
+    means.append([m1,m2])    
 means=pd.DataFrame(data=means, index=lfw_people.target_names,dtype=float)
+
 
 #считаем евклидово расстояние
 euc=pd.DataFrame(index=lfw_people.target_names,columns=np.arange(12))
@@ -208,3 +219,98 @@ print_mean('Colin Powell')
 print_mean('George W Bush')
 print_mean('Jacques Chirac')
 print_mean('Serena Williams')
+
+#Какому человеку из набора данных lfw_people соответствуют два выброса в правом верхнем углу проекции 
+#t-SNE с параметрами n_components=2 и random_state=1
+print('-----')
+
+newVal=[]
+for i in range(1560):
+    newVal.append(lfw_people.images[i].ravel())
+sc_X = StandardScaler().fit_transform(newVal)
+
+tsne = TSNE(n_components=2, random_state=1)
+X_tsne = tsne.fit_transform(sc_X)
+
+plt.figure(figsize=(12,10))
+plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=lfw_people.target,
+            cmap=plt.cm.get_cmap('nipy_spectral', 12), alpha=1, s=60)
+plt.colorbar()
+    
+print('Какому человеку из набора данных lfw_people соответствуют два выброса в правом верхнем углу проекции t-SNE с параметрами n_components=2 и random_state=1? Serena Williams')
+#plt.colorbar(sc)
+
+#Каким будет оптимальное число кластеров для датасета с ценами на жильё, если оценивать его с помощью метода локтя? 
+#Используйте в kMeans random_state=1, данные не масштабируйте. 
+#Найдем с помощью метода локтя (см. 7 статью курса) оптимальное число кластеров, которое стоит задать алгоритму kMeans в качестве гиперпараметра.
+#Каким будет оптимальное число кластеров для датасета с ценами на жильё, 
+#если оценивать его с помощью метода локтя? Используйте в kMeans random_state=1, данные не масштабируйте.
+boston = load_boston()
+X = boston.data
+
+
+inertia = []
+for k in range(2, 10):
+    kmeans = KMeans(n_clusters=k, random_state=1).fit(X)
+    inertia.append(np.sqrt(kmeans.inertia_))
+
+plt.figure(figsize=(12,10))
+plt.plot(range(2, 10), inertia, marker='s');
+plt.xlabel('$k$')
+plt.ylabel('$J(C_k)$');
+
+print('Каким будет оптимальное число кластеров для датасета с ценами на жильё, если оценивать его с помощью метода локтя? - 4')
+
+#9. Выберите все верные утверждения
+
+
+print('9. Выберите все верные утверждения')
+
+def testClusters(x,y,n):
+    algorithms = []
+    algorithms.append(KMeans(n_clusters=n, random_state=1))
+    algorithms.append(AffinityPropagation())
+    algorithms.append(SpectralClustering(n_clusters=n, random_state=1,
+                                     affinity='nearest_neighbors'))
+    algorithms.append(AgglomerativeClustering(n_clusters=n))
+
+    data = []
+    for algo in algorithms:
+        algo.fit(X)
+        data.append(({
+                'ARI': metrics.adjusted_rand_score(y, algo.labels_),
+                'AMI': metrics.adjusted_mutual_info_score(y, algo.labels_),
+                'Homogenity': metrics.homogeneity_score(y, algo.labels_),
+                'Completeness': metrics.completeness_score(y, algo.labels_),
+                'V-measure': metrics.v_measure_score(y, algo.labels_),
+                'Silhouette': metrics.silhouette_score(X, algo.labels_)}))
+    
+    results = pd.DataFrame(data=data, columns=['ARI', 'AMI', 'Homogenity',
+                                               'Completeness', 'V-measure', 
+                                               'Silhouette'],
+                           index=['K-means', 'Affinity', 
+                                  'Spectral', 'Agglomerative'])
+    print(results)
+
+
+print('general')
+testClusters(sc_X, lfw_people.target,12)
+
+target=np.zeros(lfw_people.target.shape[0])
+indices=[i for i, x in enumerate(lfw_people.target) if x == 10]
+target[indices]=1
+ 
+print('Serena Williams')
+testClusters(sc_X, target,2)
+
+print('Affinity Propagation сработала лучше спектральной кластеризации по всем метрикам качества')
+print('Если выделять только 2 кластера, а результаты кластеризации сравнивать с бинарным вектором, Серена Уильямс это или нет, то в целом алгоритмы справляются лучше, некоторые метрики превышают значение в 66%')
+
+
+#meandist=wholeMean#wholeMean.values
+meandist=means.mean(axis=1)
+distance_mat = pdist(meandist) # pdist посчитает нам верхний треугольник матрицы попарных расстояний
+
+Z = hierarchy.linkage(distance_mat, 'single') # linkage — реализация агломеративного алгоритма
+plt.figure(figsize=(7, 15))
+dn = hierarchy.dendrogram(Z, color_threshold=0.1)
