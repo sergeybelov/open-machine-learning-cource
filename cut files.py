@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 
 f_in=open('stackoverflow.vw','r')
-f_train = open('tackoverflow_train.vw','w')#начало
+f_train = open('stackoverflow_train.vw','w')#начало
 f_test = open('stackoverflow_test.vw','w')#конец
 f_valid = open('stackoverflow_valid.vw','w')#середина
 
