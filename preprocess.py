@@ -48,13 +48,16 @@ for line_str in f:
     for token in line_str[ind+1:].rstrip().split(' '):
         tmpIndex=tokens.get(token,-1)
         if tmpIndex<0: continue
-        valIndex+=tmpIndex
-        if valIndex>10: break#больше одного тега
-    else:# меньше одного тега
-        if valIndex==0: continue
-        textq=line_str[:ind-1].translate(table)
-        f_out.write(str(valIndex) +' | ' + textq + '\n')
-        strnum+=1
+        if valIndex>0:#больше одного тега
+            valIndex=0
+            break
+        valIndex=tmpIndex
+
+    if valIndex==0: continue
+    textq=line_str[:ind-1].translate(table).lstrip()
+    f_out.write(str(valIndex) +'|' + textq + '\n')
+    strnum+=1
+
 pbar.close()
 print('Количество записей: ',strnum)
 print('Должно быть       :  4389054')
