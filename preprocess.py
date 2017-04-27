@@ -6,6 +6,7 @@ Created on Tue Apr 25 21:47:18 2017
 """
 import sys
 from tqdm import tqdm
+import re
 
 
 if len(sys.argv)<=2:
@@ -23,7 +24,8 @@ def get_file(arg):
 file_name_input=get_file(1)
 file_name_output=get_file(2)
 
-tokens={'javascript':1, 'java':2, 'python':3, 'ruby':4, 'php':5, 'c++':6, 'c#':7, 'go':8, 'scala':9, 'swift':10}
+#tokens={'javascript':1, 'java':2, 'python':3, 'ruby':4, 'php':5, 'c++':6, 'c#':7, 'go':8, 'scala':9, 'swift':10}
+reg=re.compile('(javascript)|(java)|(python)|(ruby)|(php)|(c\+\+)|(c\#)|(go)|(scala)|(swift)')
 table = str.maketrans(':|', '  ')
 
 f = open(file_name_input,'r')
@@ -41,21 +43,18 @@ for line_str in f:
         #Пропускаем те строки, где интересующих тегов больше или меньше одного
 #     из текста вопроса надо выкинуть двоеточия и вертикальные палки, если они есть – в VW это спецсимволы
 #==============================================================================
-    if line_str.count('\t')!=1: continue#одна табуляция
+    if line_str.count('\t')!=1: continue#если табуляций в строке нет или их больше одной, считаем строку поврежденной и пропускаем
     ind=line_str.find('\t')
 
-    valIndex=0
-    for token in line_str[ind+1:].rstrip().split(' '):
-        tmpIndex=tokens.get(token,-1)
-        if tmpIndex<0: continue
-        if valIndex>0:#больше одного тега
-            valIndex=0
-            break
-        valIndex=tmpIndex
-
-    if valIndex==0: continue
+    m=reg.findall(line_str[ind+1:])
+    if len(m)!=1: continue#Пропускаем те строки, где интересующих тегов больше или меньше одного
+    
+    cort=m[0]
+    for vals in enumerate(cort,start=1):  
+        if len(vals[1])>0: break
+       
     textq=line_str[:ind-1].translate(table).lstrip()
-    f_out.write(str(valIndex) +'|' + textq + '\n')
+    f_out.write(str(vals[0]) +'|' + textq + '\n')
     strnum+=1
 
 pbar.close()
