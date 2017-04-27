@@ -24,7 +24,7 @@ f_trainl=0
 f_testl=0
 f_validl=0
 
-reg=re.compile('(\d+)\|')
+reg=re.compile('(\d+)\s\|')
 def save_target(file,_str):
     res=reg.match(_str)
     file.write(res.group(1)+'\n')

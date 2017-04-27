@@ -54,7 +54,7 @@ for line_str in f:
     if valIndex==0: continue
     textq=line_str[:ind-1].translate(table).lstrip()
     if(len(textq)==0): continue
-    f_out.write(str(valIndex) +'|' + textq + '\n')
+    f_out.write(str(valIndex) +' | ' + textq + '\n')
     strnum+=1
 
 
