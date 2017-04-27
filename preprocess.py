@@ -47,14 +47,11 @@ for line_str in f:
     ind=line_str.find('\t')
 
     m=reg.findall(line_str[ind+1:])
-    if len(m)!=1: continue#Пропускаем те строки, где интересующих тегов больше или меньше одного
-    
-    cort=m[0]
-    for vals in enumerate(cort,start=1):  
-        if len(vals[1])>0: break
+    if len(m)!=1: continue#Пропускаем те строки, где интересующих тегов больше или меньше одного    
+    token_index=list(filter(lambda val: len(val[1])>0, enumerate(m[0],1)))#получаем индекс токена
        
     textq=line_str[:ind-1].translate(table).lstrip()
-    f_out.write(str(vals[0]) +'|' + textq + '\n')
+    f_out.write(str(token_index[0,0]) +'|' + textq + '\n')
     strnum+=1
 
 pbar.close()
