@@ -48,11 +48,11 @@ for line_str in f:
 
     m=reg.findall(line_str[ind+1:])
     if len(m)!=1: continue#Пропускаем те строки, где интересующих тегов больше или меньше одного    
-    token_index=list(filter(lambda val: len(val[1])>0, enumerate(m[0],1)))#получаем индекс токена
-       
-    textq=line_str[:ind-1].translate(table).lstrip()
-    f_out.write(str(token_index[0,0]) +'|' + textq + '\n')
-    strnum+=1
+    for token_index in filter(lambda val: len(val[1])>0, enumerate(m[0],1)):#получаем индекс токена       
+        textq=line_str[:ind-1].translate(table).lstrip()
+        f_out.write(str(token_index[0,0]) +'|' + textq + '\n')
+        strnum+=1
+        break
 
 pbar.close()
 print('Количество записей: ',strnum)
