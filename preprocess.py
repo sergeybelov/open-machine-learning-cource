@@ -5,7 +5,6 @@ Created on Tue Apr 25 21:47:18 2017
 import sys
 from tqdm import tqdm
 
-
 if len(sys.argv)<=2:
     print('Недостаточно параметров, должно быть два файла входящий и обработанный')
     raise SystemExit(2)
@@ -21,7 +20,8 @@ def get_file(arg):
 file_name_input=get_file(1)
 file_name_output=get_file(2)
 
-tokens={'javascript':1, 'java':2, 'python':3, 'ruby':4, 'php':5, 'c++':6, 'c#':7, 'go':8, 'scala':9, 'swift':10}
+
+tokens=['javascript', 'java', 'python', 'ruby', 'php', 'c++', 'c#', 'go', 'scala', 'swift']
 table = str.maketrans(':|', '  ')
 
 f = open(file_name_input,'r')
@@ -41,22 +41,15 @@ for line_str in f:
 #==============================================================================
     if line_str.count('\t')!=1: continue#одна табуляция
     ind=line_str.find('\t')
-
-    valIndex=0
-    for token in line_str[ind+1:].rstrip().split(' '):
-        tmpIndex=tokens.get(token,-1)
-        if tmpIndex<0: continue
-        if valIndex>0:#больше одного тега
-            valIndex=0
-            break
-        valIndex=tmpIndex
-
-    if valIndex==0: continue
+    
+    filtr_tokens=list(filter(lambda val: val in tokens, line_str[ind+1:].rstrip().split(' ')))#есть ли  теги в нужных токенах
+    if len(filtr_tokens)!=1: continue#должен быть только один
+        
     textq=line_str[:ind-1].translate(table).lstrip()
     if(len(textq)==0): continue
-    f_out.write(str(valIndex) +' | ' + textq + '\n')
+    f_out.write(str(tokens.index(filtr_tokens[0])+1) +' | ' + textq + '\n')
     strnum+=1
-
+        
 
 pbar.close()
 print('Количество записей: ',strnum)
